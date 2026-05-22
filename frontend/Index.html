@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Сервіс чергувань у лабораторії Варіант - 11</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrapper">
+
+<h1>Сервіс чергувань у лабораторії</h1>
+
+<div class="top-controls">
+    <input type="text" id="searchInput" placeholder="Пошук за іменем">
+    <button id="sortBtn">Сортувати за датою</button>
+</div>
+
+<div class="layout">
+
+<form id="dutyForm" novalidate>
+
+<input type="hidden" id="editId">
+
+<div class="field">
+<label>Дата</label>
+<input type="date" id="date">
+<div class="error"></div>
+</div>
+
+<div class="field">
+<label>Час</label>
+<select id="time">
+<option value="">Оберіть</option>
+<option>08:00–10:00</option>
+<option>10:00–12:00</option>
+<option>12:00–14:00</option>
+</select>
+<div class="error"></div>
+</div>
+
+<div class="field">
+<label>Ім’я студента</label>
+<input type="text" id="name">
+<div class="error"></div>
+</div>
+
+<div class="field">
+<label>Коментар</label>
+<textarea id="comment" rows="4"></textarea>
+<div class="error"></div>
+</div>
+
+<button type="submit">Зберегти</button>
+
+</form>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Дата</th>
+<th>Час</th>
+<th>Ім’я</th>
+<th>Коментар</th>
+<th>Дії</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
