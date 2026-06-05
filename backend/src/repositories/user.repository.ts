@@ -1,34 +1,126 @@
-import { User } from "../dtos/user.dto"
+import { run, get, all } from "../db/db";
 
-let users:User[] = []
+export async function createUser(data: {
+  name: string;
+  email: string;
+  password: string;
+}) {
+  const result = await run(
+    `
+    INSERT INTO users
+    (name, email, password)
+    VALUES (?, ?, ?)
+    `,
+    [
+      data.name,
+      data.email,
+      data.password,
+    ]
+  );
 
-export const userRepository = {
-
-findAll(){
-return users.filter(u=>!u.deleted)
-},
-
-findById(id:number){
-return users.find(u=>u.id===id && !u.deleted)
-},
-
-create(user:User){
-users.push(user)
-return user
-},
-
-update(id:number,data:any){
-const u = users.find(u=>u.id===id)
-if(!u) return null
-Object.assign(u,data)
-return u
-},
-
-delete(id:number){
-const u = users.find(u=>u.id===id)
-if(!u) return false
-u.deleted = true
-return true
+  return get(
+    `
+    SELECT *
+    FROM users
+    WHERE id = ?
+    `,
+    [result.id]
+  );
 }
 
+export async function getAllUsers(
+  sort: string = "createdAt",
+  order: string = "DESC",
+  email?: string
+) {
+  let sql = `
+    SELECT *
+    FROM users
+  `;
+
+  const params: any[] = [];
+
+  if (email) {
+    sql += `
+      WHERE email LIKE ?
+    `;
+    params.push(`%${email}%`);
+  }
+
+  const allowedSorts = [
+    "id",
+    "name",
+    "email",
+    "createdAt",
+  ];
+
+  const safeSort = allowedSorts.includes(sort)
+    ? sort
+    : "createdAt";
+
+  const safeOrder =
+    order?.toUpperCase() === "ASC"
+      ? "ASC"
+      : "DESC";
+
+  sql += `
+    ORDER BY ${safeSort} ${safeOrder}
+  `;
+
+  return all(sql, params);
+}
+
+export async function getUserById(id: number) {
+  return get(
+    `
+    SELECT *
+    FROM users
+    WHERE id = ?
+    `,
+    [id]
+  );
+}
+
+export async function updateUser(
+  id: number,
+  data: {
+    name: string;
+    email: string;
+    password: string;
+  }
+) {
+  const result = await run(
+    `
+    UPDATE users
+    SET
+      name = ?,
+      email = ?,
+      password = ?
+    WHERE id = ?
+    `,
+    [
+      data.name,
+      data.email,
+      data.password,
+      id,
+    ]
+  );
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getUserById(id);
+}
+
+export async function deleteUser(id: number) {
+  const result = await run(
+    `
+    DELETE FROM users
+    WHERE id = ?
+    `,
+    [id]
+  );
+
+  return result.changes > 0;
 }

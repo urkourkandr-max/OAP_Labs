@@ -1,0 +1,50 @@
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS duties (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    comment TEXT,
+    userId INTEGER NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (userId)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+    
+CREATE TABLE IF NOT EXISTS duty_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dutyId INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (dutyId)
+        REFERENCES duties(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email
+ON users(email);
+
+CREATE INDEX IF NOT EXISTS idx_duties_userId
+ON duties(userId);
+
+CREATE INDEX IF NOT EXISTS idx_duties_createdAt
+ON duties(createdAt);
+
+CREATE INDEX IF NOT EXISTS idx_messages_dutyId
+ON duty_messages(dutyId);

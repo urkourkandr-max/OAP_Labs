@@ -1,58 +1,41 @@
 import { Router } from "express";
-import dutyController from "../controllers/duties.controller";
+
+import {
+  createDuty,
+  createDutyWithMessage,
+  getDuties,
+  getDuty,
+  updateDuty,
+  deleteDuty,
+  getDutyWithUser,
+  getLatestUserDuties,
+} from "../controllers/duties.controller";
 
 const router = Router();
 
-function validate(req: any, res: any, next: any) {
-    const { name, date, time } = req.body;
+router.post("/", createDuty);
 
-    if (!name || !date || !time) {
-        return res.status(400).json({
-            error: true,
-            message: "Required fields missing"
-        });
-    }
+router.post(
+  "/with-message",
+  createDutyWithMessage
+);
 
-    if (name.length < 3 || name.length > 20) {
-        return res.status(400).json({
-            error: true,
-            message: "Name length must be 3-20"
-        });
-    }
+router.get("/", getDuties);
 
-    if (!/^[A-Za-zА-Яа-яІіЇїЄєҐґ\s]+$/.test(name)) {
-        return res.status(400).json({
-            error: true,
-            message: "Name must contain only letters"
-        });
-    }
+router.get(
+  "/user/:userId/latest",
+  getLatestUserDuties
+);
 
-    const d = new Date(date);
+router.get(
+  "/:id/user",
+  getDutyWithUser
+);
 
-    if (isNaN(d.getTime())) {
-        return res.status(400).json({
-            error: true,
-            message: "Invalid date"
-        });
-    }
+router.get("/:id", getDuty);
 
-    if (d < new Date()) {
-        return res.status(400).json({
-            error: true,
-            message: "Date cannot be in past"
-        });
-    }
+router.put("/:id", updateDuty);
 
-    next();
-}
-
-router.get("/", dutyController.getAll);
-router.get("/:id", dutyController.getById);
-
-router.post("/", validate, dutyController.create);
-router.put("/:id", validate, dutyController.update);
-router.patch("/:id", validate, dutyController.patch);
-
-router.delete("/:id", dutyController.delete);
+router.delete("/:id", deleteDuty);
 
 export default router;

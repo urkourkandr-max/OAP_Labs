@@ -1,30 +1,45 @@
 import express from "express";
-import cors from "cors";
 
+import usersRoutes from "./routes/users.routes";
 import dutiesRoutes from "./routes/duties.routes";
-import userRoutes from "./routes/user.routes";
+import messagesRoutes from "./routes/message.routes";
 
-import { logger } from "./middleware/logger";
-import { errorHandler } from "./middleware/errorHandler";
+import { initDatabase } from "./db/init";
+import { seedDatabase } from "./db/seed";
+
+import { logger } from "./middlewares/logger";
+import { errorHandler } from "./middlewares/errorHandler";
 
 const app = express();
 
-app.use(cors());
 app.use(express.json());
+
 app.use(logger);
 
-app.use("/api/duties", dutiesRoutes);
-app.use("/api/users", userRoutes);
-
-app.use((req, res) => {
-    res.status(404).json({
-        error: true,
-        message: "Not Found"
-    });
-});
+app.use("/users", usersRoutes);
+app.use("/duties", dutiesRoutes);
+app.use("/messages", messagesRoutes);
 
 app.use(errorHandler);
 
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
-});
+const PORT = 3000;
+
+async function startServer() {
+  try {
+    await initDatabase();
+
+    await seedDatabase();
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error(
+      "Database initialization failed:",
+      err
+    );
+    process.exit(1);
+  }
+}
+
+startServer();
