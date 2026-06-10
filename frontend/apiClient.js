@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://localhost:3000/api/v1";
+const API_BASE_URL = "http://localhost:3000/api";
+const DEMO_USER_ID = "1"; 
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -8,7 +9,8 @@ async function request(endpoint, options = {}) {
   try {
     response = await fetch(url, {
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Demo-UserId": DEMO_USER_ID
       },
       ...options
     });

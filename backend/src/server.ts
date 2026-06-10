@@ -24,14 +24,21 @@ app.use(cors({
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Demo-UserId"]
 }));
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  next();
+});
 
 app.use(logger);
 
-app.use("/api/v1/duties", dutiesRoutes);
-app.use("/api/v1/users", usersRoutes);
-app.use("/api/v1/messages", messagesRoutes);
+app.use("/api/duties", dutiesRoutes);
+app.use("/api/users", usersRoutes);
+app.use("/api/messages", messagesRoutes);
 
 app.use(errorHandler);
 

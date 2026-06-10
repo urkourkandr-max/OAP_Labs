@@ -1,4 +1,6 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
+import { demoAuth } from "../middlewares/demoAuth";
+import { checkDutyOwner } from "../middlewares/checkOwner";
 
 import {
   createDuty,
@@ -13,20 +15,16 @@ import {
 
 const router = Router();
 
+router.use(demoAuth);
+
 router.get("/", getDuties);
-
 router.get("/user/:userId/latest", getLatestUserDuties);
-
-router.get("/:id/user", getDutyWithUser);
-
-router.get("/:id", getDuty);
-
 router.post("/", createDuty);
-
 router.post("/with-message", createDutyWithMessage);
 
-router.put("/:id", updateDuty);
-
-router.delete("/:id", deleteDuty);
+router.get("/:id/user", checkDutyOwner, getDutyWithUser);
+router.get("/:id", checkDutyOwner, getDuty);
+router.put("/:id", checkDutyOwner, updateDuty);
+router.delete("/:id", checkDutyOwner, deleteDuty);
 
 export default router;
