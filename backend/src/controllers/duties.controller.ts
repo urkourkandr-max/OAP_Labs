@@ -1,41 +1,31 @@
 import { Request, Response, NextFunction } from "express";
 import * as dutiesRepository from "../repositories/duties.repository";
 
+function problemDetails(res: Response, status: number, title: string, detail: string) {
+  return res.status(status).json({ status, title, detail });
+}
+
 export async function createDuty(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
-    const {
-      name,
-      date,
-      time,
-      comment,
-      userId,
-    } = req.body;
+    const { title, description, date, time, userId } = req.body;
 
-    if (
-      !name ||
-      !date ||
-      !time ||
-      !userId
-    ) {
-      return res.status(400).json({
-        message:
-          "name, date, time and userId are required",
-      });
+    if (!title || !date || !time || !userId) {
+      return problemDetails(res, 400, "Bad Request", "Відсутні обов'язкові поля: title, date, time, userId.");
     }
 
     const duty = await dutiesRepository.createDuty({
-      name,
+      name: title,
       date,
       time,
-      comment,
-      userId,
+      comment: description || "",
+      userId
     });
 
-    return res.status(201).json(duty);
+    return res.status(201).json({ success: true, data: duty });
   } catch (error) {
     next(error);
   }
@@ -47,16 +37,8 @@ export async function getDuties(
   next: NextFunction
 ) {
   try {
-    const { userId, sort, order } = req.query;
-
-    const duties =
-      await dutiesRepository.getAllDuties(
-        userId ? Number(userId) : undefined,
-        sort as string,
-        order as string
-      );
-
-    res.json(duties);
+    const duties = await dutiesRepository.getAllDuties();
+    return res.json({ success: true, data: duties });
   } catch (error) {
     next(error);
   }
@@ -68,18 +50,14 @@ export async function getDuty(
   next: NextFunction
 ) {
   try {
-    const duty =
-      await dutiesRepository.getDutyById(
-        Number(req.params.id)
-      );
+    const { id } = req.params;
+    const duty = await dutiesRepository.getDutyById(Number(id));
 
     if (!duty) {
-      return res.status(404).json({
-        message: "Duty not found",
-      });
+      return problemDetails(res, 404, "Not Found", `Запис з id=${id} не знайдено.`);
     }
 
-    res.json(duty);
+    return res.json({ success: true, data: duty });
   } catch (error) {
     next(error);
   }
@@ -91,45 +69,27 @@ export async function updateDuty(
   next: NextFunction
 ) {
   try {
-    const {
-      name,
+    const { id } = req.params;
+    const { title, description, date, time, userId } = req.body;
+
+    if (!title || !date || !time || !userId) {
+      return problemDetails(res, 400, "Bad Request", "Відсутні обов'язкові поля: title, date, time, userId.");
+    }
+
+    const existing = await dutiesRepository.getDutyById(Number(id));
+    if (!existing) {
+      return problemDetails(res, 404, "Not Found", `Запис з id=${id} не знайдено.`);
+    }
+
+    const duty = await dutiesRepository.updateDuty(Number(id), {
+      name: title,
       date,
       time,
-      comment,
-      userId,
-    } = req.body;
+      comment: description || "",
+      userId
+    });
 
-    if (
-      !name ||
-      !date ||
-      !time ||
-      !userId
-    ) {
-      return res.status(400).json({
-        message:
-          "name, date, time and userId are required",
-      });
-    }
-
-    const duty =
-      await dutiesRepository.updateDuty(
-        Number(req.params.id),
-        {
-          name,
-          date,
-          time,
-          comment,
-          userId,
-        }
-      );
-
-    if (!duty) {
-      return res.status(404).json({
-        message: "Duty not found",
-      });
-    }
-
-    res.json(duty);
+    return res.json({ success: true, data: duty });
   } catch (error) {
     next(error);
   }
@@ -141,20 +101,15 @@ export async function deleteDuty(
   next: NextFunction
 ) {
   try {
-    const deleted =
-      await dutiesRepository.deleteDuty(
-        Number(req.params.id)
-      );
+    const { id } = req.params;
 
-    if (!deleted) {
-      return res.status(404).json({
-        message: "Duty not found",
-      });
+    const duty = await dutiesRepository.getDutyById(Number(id));
+    if (!duty) {
+      return problemDetails(res, 404, "Not Found", `Запис з id=${id} не знайдено.`);
     }
 
-    res.json({
-      message: "Duty deleted",
-    });
+    await dutiesRepository.deleteDuty(Number(id));
+    return res.json({ success: true, message: "Видалено успішно." });
   } catch (error) {
     next(error);
   }
@@ -166,18 +121,14 @@ export async function getDutyWithUser(
   next: NextFunction
 ) {
   try {
-    const duty =
-      await dutiesRepository.getDutyWithUser(
-        Number(req.params.id)
-      );
+    const { id } = req.params;
+    const duty = await dutiesRepository.getDutyWithUser(Number(id));
 
     if (!duty) {
-      return res.status(404).json({
-        message: "Duty not found",
-      });
+      return problemDetails(res, 404, "Not Found", `Запис з id=${id} не знайдено.`);
     }
 
-    res.json(duty);
+    return res.json({ success: true, data: duty });
   } catch (error) {
     next(error);
   }
@@ -189,12 +140,9 @@ export async function getLatestUserDuties(
   next: NextFunction
 ) {
   try {
-    const duties =
-      await dutiesRepository.getLatestDutiesByUser(
-        Number(req.params.userId)
-      );
-
-    res.json(duties);
+    const { userId } = req.params;
+    const duties = await dutiesRepository.getLatestDutiesByUser(Number(userId));
+    return res.json({ success: true, data: duties });
   } catch (error) {
     next(error);
   }
@@ -206,39 +154,16 @@ export async function createDutyWithMessage(
   next: NextFunction
 ) {
   try {
-    const {
-      name,
+    const { title, description, date, time, userId } = req.body;
+    const result = await dutiesRepository.createDutyWithMessage({
+      name: title,
       date,
       time,
-      comment,
+      comment: description || "",
       userId,
-      firstMessage,
-    } = req.body;
-
-    if (
-      !name ||
-      !date ||
-      !time ||
-      !userId ||
-      !firstMessage
-    ) {
-      return res.status(400).json({
-        message:
-          "name, date, time, userId and firstMessage are required",
-      });
-    }
-
-    const result =
-      await dutiesRepository.createDutyWithMessage({
-        name,
-        date,
-        time,
-        comment,
-        userId,
-        firstMessage,
-      });
-
-    return res.status(201).json(result);
+      firstMessage: ""
+    });
+    return res.status(201).json({ success: true, data: result });
   } catch (error) {
     next(error);
   }

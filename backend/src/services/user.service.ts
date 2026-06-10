@@ -1,14 +1,16 @@
-import { userRepository } from "../repositories/user.repository"
+import * as userRepository from "../repositories/user.repository"
+
+const repo: any = (userRepository as any).default || userRepository
 import { CreateUserRequestDto } from "../dtos/user.dto"
 
 export const userService = {
 
     getAll() {
-        return userRepository.findAll()
+        return repo.findAll()
     },
 
     getById(id: number) {
-        const user = userRepository.findById(id)
+        const user = repo.findById(id)
 
         if (!user) {
             throw { status: 404, message: "User not found" }
@@ -32,11 +34,11 @@ export const userService = {
             ...dto
         }
 
-        return userRepository.create(user)
+        return repo.create(user)
     },
 
     update(id: number, dto: any) {
-        const updated = userRepository.update(id, dto)
+        const updated = repo.update(id, dto)
 
         if (!updated) {
             throw { status: 404, message: "User not found" }
@@ -46,7 +48,7 @@ export const userService = {
     },
 
     delete(id: number) {
-        const ok = userRepository.delete(id)
+        const ok = repo.delete(id)
 
         if (!ok) {
             throw { status: 404, message: "User not found" }

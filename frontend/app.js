@@ -1,191 +1,192 @@
-document.addEventListener("DOMContentLoaded", function () {
+import { dutiesApi } from "./apiClient.js";
 
-let items = [];
-let editId = null;
-let sortAsc = true;
-
-const API = "http://localhost:3000/api/duties";
-
-const form = document.getElementById("dutyForm");
-const nameInput = document.getElementById("name");
+const form         = document.getElementById("dutyForm");
+const dateInput    = document.getElementById("date");
+const timeInput    = document.getElementById("time");
+const nameInput    = document.getElementById("name");
 const commentInput = document.getElementById("comment");
-const dateInput = document.getElementById("date");
-const timeInput = document.getElementById("time");
-const tableBody = document.getElementById("tableBody");
-const searchInput = document.getElementById("searchInput");
-const sortBtn = document.getElementById("sortBtn");
+const editIdInput  = document.getElementById("editId");
+const tableBody    = document.getElementById("tableBody");
+const searchInput  = document.getElementById("searchInput");
+const sortBtn      = document.getElementById("sortBtn");
 
-load();
+const stateLoading = document.getElementById("stateLoading");
+const stateEmpty   = document.getElementById("stateEmpty");
+const stateError   = document.getElementById("stateError");
+const stateErrorMsg = document.getElementById("stateErrorMsg");
 
-function showError(input, msg) {
-    input.nextElementSibling.textContent = msg;
-}
+let items   = [];
+let sortAsc = true;
+const userId = 1;
 
-function clearErrors() {
-    document.querySelectorAll(".error").forEach(e => e.textContent = "");
-}
+loadDuties();
 
-function validate() {
-
-    clearErrors();
-    let valid = true;
-
-    const title = nameInput.value.trim();
-    const comment = commentInput.value.trim();
-    const date = dateInput.value;
-    const time = timeInput.value;
-
-    if (!date) {
-        showError(dateInput, "Оберіть дату");
-        valid = false;
-    }
-
-    const today = new Date().toISOString().split("T")[0];
-    if (date && date < today) {
-        showError(dateInput, "Дата не може бути в минулому");
-        valid = false;
-    }
-
-    if (!time) {
-        showError(timeInput, "Оберіть час");
-        valid = false;
-    }
-
-    if (!/^[А-Яа-яA-Za-zІіЇїЄєҐґ\s]+$/.test(title)) {
-        showError(nameInput, "Лише букви");
-        valid = false;
-    }
-
-    if (title.length < 3) {
-        showError(nameInput, "Ім'я має бути більше 3 букв");
-        valid = false;
-    }
-
-    if (title.length > 20) {
-        showError(nameInput, "Максимум 20 символів");
-        valid = false;
-    }
-
-    if (comment.length > 50) {
-        showError(commentInput, "Максимум 50 символів");
-        valid = false;
-    }
-
-    return valid;
-}
-
-async function load() {
-    const res = await fetch(API + "?userId=1");
-    const data = await res.json();
-    items = data.data || [];
+async function loadDuties() {
+  setUIState("loading");
+  try {
+    const data = await dutiesApi.getAll();
+    items = data.data || data || [];
+    setUIState(items.length === 0 ? "empty" : "success");
     render();
+  } catch (err) {
+    console.error("Load error:", err);
+    setUIState("error", err.message || "Не вдалося завантажити дані.");
+  }
 }
 
-form.addEventListener("submit", async function (e) {
+function setUIState(state, errorMessage = "") {
+  stateLoading.hidden = state !== "loading";
+  stateEmpty.hidden   = state !== "empty";
+  stateError.hidden   = state !== "error";
+  tableBody.closest("table").hidden = state === "loading" || state === "error";
 
-    e.preventDefault();
+  if (state === "error") {
+    stateErrorMsg.textContent = errorMessage;
+  }
+}
 
-    if (!validate()) return;
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearErrors();
 
-    const duty = {
-        title: nameInput.value.trim(),
-        description: commentInput.value.trim(),
-        date: dateInput.value,
-        time: timeInput.value,
-        userId: 1
-    };
+  const date    = dateInput.value.trim();
+  const time    = timeInput.value.trim();
+  const name    = nameInput.value.trim();
+  const comment = commentInput.value.trim();
 
+  let valid = true;
+
+  if (!date) {
+    showError(dateInput, "Обов'язкове поле");
+    valid = false;
+  } else {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(date);
+    if (selected < today) {
+      showError(dateInput, "Не можна вводити дату з минулого");
+      valid = false;
+    }
+  }
+
+  if (!time) {
+    showError(timeInput, "Оберіть час");
+    valid = false;
+  }
+
+  if (!name) {
+    showError(nameInput, "Обов'язкове поле");
+    valid = false;
+  } else if (name.length < 3) {
+    showError(nameInput, "Мінімум 3 символи");
+    valid = false;
+  } else if (name.length > 20) {
+    showError(nameInput, "Максимум 20 символів");
+    valid = false;
+  } else if (/\d/.test(name)) {
+    showError(nameInput, "Ім'я не повинно містити цифри");
+    valid = false;
+  }
+
+  if (comment.length > 50) {
+    showError(commentInput, "Максимум 50 символів");
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  const duty = { title: name, description: comment, date, time, userId };
+
+  try {
+    const editId = editIdInput.value;
     if (editId) {
-
-        await fetch(`${API}/${editId}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                 ...duty,
-                 status: "updated"
-            })
-        });
-
-        editId = null;
-
+      await dutiesApi.update(editId, duty);
     } else {
-
-        await fetch(API, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(duty)
-        });
-
+      await dutiesApi.create(duty);
     }
 
     form.reset();
-    load();
+    editIdInput.value = "";
+    clearErrors();
+    await loadDuties();
+  } catch (error) {
+    alert("Помилка збереження: " + error.message);
+  }
 });
 
-sortBtn.addEventListener("click", function () {
-    sortAsc = !sortAsc;
-
-    items.sort((a, b) => {
-        return sortAsc
-            ? new Date(a.date) - new Date(b.date)
-            : new Date(b.date) - new Date(a.date);
-    });
-
-    render();
-});
-
-function render() {
-
-    const filtered = items.filter(item =>
-        item.title.toLowerCase()
-            .includes(searchInput.value.toLowerCase())
-    );
-
-    tableBody.innerHTML = "";
-
-    filtered.forEach((item, index) => {
-
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${item.date}</td>
-            <td>${item.time}</td>
-            <td>${item.title}</td>
-            <td>${item.description}</td>
-            <td>
-                <button onclick="editItem(${item.id})">Редагувати</button>
-                <button onclick="deleteItem(${item.id})">Видалити</button>
-            </td>
-        `;
-
-        tableBody.appendChild(row);
-    });
+function showError(input, msg) {
+  const el = input.parentElement.querySelector(".error");
+  if (el) el.textContent = msg;
 }
 
-window.deleteItem = async function(id){
-    await fetch(`${API}/${id}`, {
-        method:"DELETE"
-    });
-    load();
-};
+function clearErrors() {
+  document.querySelectorAll(".error").forEach(el => el.textContent = "");
+}
 
-window.editItem = function(id){
-
-    const item = items.find(i => i.id === id);
-
-    nameInput.value = item.title;
-    commentInput.value = item.description;
-    dateInput.value = item.date;
-    timeInput.value = item.time;
-
-    editId = id;
-};
+sortBtn.addEventListener("click", () => {
+  sortAsc = !sortAsc;
+  items.sort((a, b) =>
+    sortAsc
+      ? new Date(a.date) - new Date(b.date)
+      : new Date(b.date) - new Date(a.date)
+  );
+  render();
+});
 
 searchInput.addEventListener("input", render);
 
-});
+function render() {
+  const query = searchInput.value.trim().toLowerCase();
+  const filtered = query
+    ? items.filter(i => (i.title || i.name || "").toLowerCase().includes(query))
+    : items;
+
+  tableBody.innerHTML = "";
+
+  if (filtered.length === 0 && items.length > 0) {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td colspan="6" style="text-align:center;color:#888">Нічого не знайдено</td>`;
+    tableBody.appendChild(row);
+    return;
+  }
+
+  filtered.forEach((item, idx) => {
+    const title       = item.title || item.name || "";
+    const description = item.description || item.comment || "";
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${idx + 1}</td>
+      <td>${item.date}</td>
+      <td>${item.time}</td>
+      <td>${title}</td>
+      <td>${description}</td>
+      <td>
+        <button onclick="editDuty(${item.id})">Ред.</button>
+        <button onclick="deleteDuty(${item.id})">Вид.</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+window.editDuty = (id) => {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  nameInput.value    = item.title || item.name || "";
+  commentInput.value = item.description || item.comment || "";
+  dateInput.value    = item.date;
+  timeInput.value    = item.time;
+  editIdInput.value  = id;
+  nameInput.focus();
+};
+
+window.deleteDuty = async (id) => {
+  if (!confirm("Видалити цей запис?")) return;
+  try {
+    await dutiesApi.delete(id);
+    await loadDuties();
+  } catch (err) {
+    alert("Помилка видалення: " + err.message);
+  }
+};

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 
 import {
   createDuty,
@@ -13,26 +13,17 @@ import {
 
 const router = Router();
 
-router.post("/", createDuty);
-
-router.post(
-  "/with-message",
-  createDutyWithMessage
-);
-
 router.get("/", getDuties);
 
-router.get(
-  "/user/:userId/latest",
-  getLatestUserDuties
-);
+router.get("/user/:userId/latest", getLatestUserDuties);
 
-router.get(
-  "/:id/user",
-  getDutyWithUser
-);
+router.get("/:id/user", getDutyWithUser);
 
 router.get("/:id", getDuty);
+
+router.post("/", createDuty);
+
+router.post("/with-message", createDutyWithMessage);
 
 router.put("/:id", updateDuty);
 
